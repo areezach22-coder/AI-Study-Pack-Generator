@@ -1,55 +1,16 @@
-PLANNING_SYSTEM = """You are an expert instructional designer. Create accurate, personalized learning plans."""
+ASSESSMENT_SYSTEM = """You are a strict university assessment generator.
 
-PLANNING_PROMPT = """
-Create a personalized learning plan.
+Your task is to generate a study assessment in EXACTLY the JSON structure requested by the user.
 
-Topic: {topic}
-Student level: {level}
-Study-pack type: {pack_type}
-Flashcards: {flashcard_count}
-MCQs: {mcq_count}
-Study material: {material}
+You MUST produce syntactically valid JSON that can be parsed directly using Python json.loads().
 
-Return ONLY valid JSON:
-{{
-  "topic": "final topic",
-  "learning_goal": "main goal",
-  "learning_objectives": ["objective 1", "objective 2", "objective 3", "objective 4"],
-  "core_concepts": ["concept 1", "concept 2", "concept 3"],
-  "difficulty": "appropriate difficulty",
-  "content_strategy": "explanation strategy",
-  "assessment_strategy": "assessment strategy",
-  "common_misconceptions": ["misconception 1", "misconception 2"]
-}}
-Prioritize supplied material and do not invent unsupported facts.
+Never output Markdown.
+Never output ```json.
+Never add comments.
+Never add explanations outside the JSON object.
+Never duplicate any JSON key.
+Never add any extra key.
 """
-
-CONTENT_SYSTEM = """You are an expert university teacher. Generate accurate, clear, student-friendly learning content."""
-
-CONTENT_PROMPT = """
-Generate teaching content from this learning plan.
-
-LEARNING PLAN:
-{planning}
-
-SOURCE MATERIAL:
-{material}
-
-STUDENT LEVEL: {level}
-PACK TYPE: {pack_type}
-
-Create:
-# Quick Overview
-# Core Concepts
-# Key Terms
-# Detailed Explanation
-# Examples
-# Common Misconceptions
-
-Follow the plan, match the student's level, prioritize source material, and use Markdown.
-"""
-
-ASSESSMENT_SYSTEM = """You are an expert assessment designer. Create fair assessments that test genuine understanding."""
 
 ASSESSMENT_PROMPT = """
 Create assessments from the learning plan and generated content.
@@ -60,84 +21,108 @@ LEARNING PLAN:
 GENERATED CONTENT:
 {content}
 
-STUDENT LEVEL: {level}
-Create exactly {flashcard_count} flashcards, {mcq_count} MCQs, and 5 short-answer questions.
+STUDENT LEVEL:
+{level}
 
-Return ONLY valid JSON:
+REQUIRED COUNTS:
+
+* Flashcards: exactly {flashcard_count}
+* MCQs: exactly {mcq_count}
+* Short-answer questions: exactly 5
+
+IMPORTANT JSON RULES:
+
+1. Return ONLY one valid JSON object.
+
+2. The JSON must contain EXACTLY these three top-level keys:
+
+   * "flashcards"
+   * "mcqs"
+   * "short_questions"
+
+3. Each flashcard must contain EXACTLY two keys:
+
+   * "question"
+   * "answer"
+
+4. Each MCQ must contain EXACTLY four keys:
+
+   * "question"
+   * "options"
+   * "correct_answer"
+   * "explanation"
+
+5. Each MCQ "options" array must contain EXACTLY four unique options.
+
+6. "correct_answer" must be exactly one of:
+   "A", "B", "C", or "D"
+
+7. Never repeat "answer", "question", or any other key inside an object.
+
+8. Never put an "answer" key outside its flashcard object.
+
+9. Do not create nested duplicate objects.
+
+10. Do not add extra fields.
+
+11. Generate exactly the requested number of flashcards and MCQs.
+
+12. Generate exactly 5 short-answer questions.
+
+13. All questions must be based on the supplied learning plan and generated content.
+
+14. Do not invent unsupported facts.
+
+15. Make MCQs unambiguous and academically meaningful.
+
+16. Before returning the response, internally verify:
+
+    * JSON brackets are correctly closed.
+    * Every key appears only once within its object.
+    * Every flashcard has exactly question + answer.
+    * Every MCQ has exactly question + options + correct_answer + explanation.
+    * Every MCQ has exactly four unique options.
+    * The number of flashcards is exactly {flashcard_count}.
+    * The number of MCQs is exactly {mcq_count}.
+    * There are exactly 5 short questions.
+
+RETURN THIS EXACT STRUCTURE:
+
 {{
-  "flashcards": [{{"question": "...", "answer": "..."}}],
-  "mcqs": [{{"question": "...", "options": ["A","B","C","D"], "correct_answer": "A", "explanation": "..."}}],
-  "short_questions": ["question 1","question 2","question 3","question 4","question 5"]
-}}
-Every MCQ must have exactly four options and an unambiguous answer.
-"""
-
-REVIEW_SYSTEM = """You are a strict academic reviewer. Identify factual, structural, and assessment problems."""
-
-REVIEW_PROMPT = """
-Review these study-pack components.
-
-PLAN:
-{planning}
-
-CONTENT:
-{content}
-
-ASSESSMENT:
-{assessment}
-
-Check factual accuracy, objective alignment, difficulty, missing concepts, redundancy,
-ambiguous MCQs, incorrect answer keys, weak explanations, unsupported claims, and usefulness.
-
-Return ONLY valid JSON:
+"flashcards": [
 {{
-  "approved": true,
-  "quality_score": 0,
-  "content_issues": [],
-  "assessment_issues": [],
-  "missing_items": [],
-  "recommended_changes": []
+"question": "Question 1",
+"answer": "Answer 1"
 }}
-Quality score must be 0-100.
+],
+"mcqs": [
+{{
+"question": "Question 1",
+"options": [
+"Option A",
+"Option B",
+"Option C",
+"Option D"
+],
+"correct_answer": "A",
+"explanation": "Explanation"
+}}
+],
+"short_questions": [
+"Question 1",
+"Question 2",
+"Question 3",
+"Question 4",
+"Question 5"
+]
+}}
+
+IMPORTANT:
+The example above shows the required structure only.
+Do NOT copy the example questions.
+Generate the actual questions from the supplied content.
+
+Return ONLY valid JSON.
 """
 
-REFINEMENT_SYSTEM = """You are a senior educational editor. Correct and improve the study pack using review feedback."""
 
-REFINEMENT_PROMPT = """
-Create the final refined study pack.
-
-PLAN:
-{planning}
-
-CONTENT:
-{content}
-
-ASSESSMENT:
-{assessment}
-
-REVIEW:
-{review}
-
-STUDENT LEVEL: {level}
-Required flashcards: {flashcard_count}
-Required MCQs: {mcq_count}
-
-Apply the review feedback. Keep exactly the requested number of flashcards and MCQs.
-
-Return Markdown with:
-# AI Study Pack
-## 1. Quick Overview
-## 2. Learning Objectives
-## 3. Core Concepts
-## 4. Key Terms
-## 5. Detailed Explanation
-## 6. Examples
-## 7. Flashcards
-## 8. MCQ Quiz
-## 9. Short-Answer Questions
-## 10. Answer Key
-## 11. Common Misconceptions
-## 12. One-Day Revision Plan
-
-Do not reveal MCQ answers before the answer key. Keep answers consistent with questions.
-"""
