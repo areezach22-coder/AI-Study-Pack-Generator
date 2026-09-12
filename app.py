@@ -4,7 +4,7 @@ import streamlit as st
 from groq import Groq
 from workflow import create_context, run_workflow
 
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_MODEL = "openai/gpt-oss-120b"
 
 st.set_page_config(page_title="AI Study Pack Generator", page_icon="📚", layout="wide")
 
